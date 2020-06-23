@@ -39,7 +39,7 @@ public class AppTest {
 	
 	
 	
-	//Scenario test document
+	//stage test document
 	@Test
 	public void testDroneShippedOk() throws InterruptedException, IOException {
 		DeliveriesFile deliveriesFile = new DeliveriesFile();
@@ -54,7 +54,7 @@ public class AppTest {
 		this.scadService.processDeliveriesFile(deliveriesFile);
 	}
 	
-	//Scenario test document over 3 deliveries
+	//stage test document over 3 deliveries
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidDeliveriesPerDrone() throws InterruptedException, IOException {
 		DeliveriesFile deliveriesFile = new DeliveriesFile();
