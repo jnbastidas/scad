@@ -1,4 +1,4 @@
-package com.s4n.model;
+package com.s4n.delivery.model;
 
 public enum Orientation {
 	N("North Direction"), S("South Direction"), E("East Direction"), W("West Direction");

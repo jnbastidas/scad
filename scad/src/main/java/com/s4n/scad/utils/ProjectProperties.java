@@ -1,4 +1,4 @@
-package com.s4n.utils;
+package com.s4n.scad.utils;
 
 import java.io.IOException;
 import java.util.Properties;

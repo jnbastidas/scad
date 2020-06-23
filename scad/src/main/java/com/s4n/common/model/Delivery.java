@@ -1,4 +1,4 @@
-package com.s4n.model;
+package com.s4n.common.model;
 
 import java.io.Serializable;
 

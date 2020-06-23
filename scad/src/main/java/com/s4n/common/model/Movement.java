@@ -1,4 +1,4 @@
-package com.s4n.model;
+package com.s4n.common.model;
 
 public enum Movement {
 	A("Go forward"), D("Rotate to right"), I("Rotate to left");

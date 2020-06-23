@@ -2,13 +2,31 @@ package com.s4n.delivery.service.impl;
 
 import java.util.Map;
 
-import com.s4n.delivery.service.OrientationService;
-import com.s4n.model.Orientation;
+import com.s4n.delivery.model.Flight;
+import com.s4n.delivery.model.Orientation;
+import com.s4n.delivery.service.FlightService;
 
-public class DefaultOrientationServiceImpl implements OrientationService {
-	public static String SERVICE_NAME = "DefaultOrientationServiceImpl";
+public class DefaultFlightServiceImpl implements FlightService {
+	public static String SERVICE_NAME = "DefaultFlightServiceImpl";
 	
-	public void goForward(Orientation initialOrientation, Map<Orientation, Integer> position) {
+	@Override
+	public void rotateToRight(Flight flight) {
+		Orientation newOrientation = this.rotateToRight(flight.getOrientation());
+		flight.setOrientation(newOrientation);
+	}
+
+	@Override
+	public void rotateToLeft(Flight flight) {
+		Orientation newOrientation = this.rotateToLeft(flight.getOrientation());
+		flight.setOrientation(newOrientation);
+	}
+
+	@Override
+	public void goForward(Flight flight) {
+		this.goForward(flight.getOrientation(), flight.getPosition());
+	}
+	
+	private void goForward(Orientation initialOrientation, Map<Orientation, Integer> position) {
 		if (Orientation.N.equals(initialOrientation)) {
 			Integer total = position.get(Orientation.N) + 1;
 			position.put(Orientation.N, total);
@@ -27,7 +45,7 @@ public class DefaultOrientationServiceImpl implements OrientationService {
 		}
 	}
 	
-	public Orientation rotateToRight(Orientation orientation) {
+	private Orientation rotateToRight(Orientation orientation) {
 		if (Orientation.N.equals(orientation)) {
 			return Orientation.E;
 		} else if (Orientation.E.equals(orientation)) {
@@ -39,7 +57,7 @@ public class DefaultOrientationServiceImpl implements OrientationService {
 		}
 	}
 	
-	public Orientation rotateToLeft(Orientation orientation) {
+	private Orientation rotateToLeft(Orientation orientation) {
 		if (Orientation.N.equals(orientation)) {
 			return Orientation.W;
 		} else if (Orientation.W.equals(orientation)) {

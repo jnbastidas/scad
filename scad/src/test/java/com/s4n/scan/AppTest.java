@@ -1,38 +1,45 @@
 package com.s4n.scan;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.s4n.model.DeliveriesFile;
-import com.s4n.model.Delivery;
-import com.s4n.model.Drone;
-import com.s4n.model.Movement;
-import com.s4n.scad.service.DroneService;
-import com.s4n.scad.service.impl.DefaultDroneServiceImpl;
-import com.s4n.utils.ProjectProperties;
-import com.s4n.utils.ServiceLocator;
+import com.s4n.common.model.Delivery;
+import com.s4n.common.model.Drone;
+import com.s4n.common.model.Movement;
+import com.s4n.scad.model.DeliveriesFile;
+import com.s4n.scad.service.ScadService;
+import com.s4n.scad.service.impl.DefaultScadServiceImpl;
+import com.s4n.scad.utils.ServiceLocator;
 
 public class AppTest {
-	private static Integer MAX_DRONES = 20;
-	private BlockingQueue<Drone> availableDrones = new LinkedBlockingQueue<>(MAX_DRONES);
+	private ScadService scadService = ServiceLocator.getScadService(DefaultScadServiceImpl.SERVICE_NAME);
 	
-	private ProjectProperties projectProperties = ProjectProperties.getInstance();
-	private DroneService droneService = ServiceLocator.getDroneService(DefaultDroneServiceImpl.SERVICE_NAME);
-	
-	@Before
-	public void initApp() {
-		this.createDronesQueue();
+	@BeforeClass
+	public static void initApp() {
+		BlockingQueue<Drone> availableDronesQueue = ServiceLocator.getAvailableDronesQueue();
+		IntStream.range(0, availableDronesQueue.remainingCapacity()).forEach(idx -> {
+			try {
+				Drone drone = new Drone();
+				drone.setId(Long.valueOf(idx));
+				drone.setName("#"+(idx+1));
+				
+				availableDronesQueue.put(drone);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	  );
 	}
 	
+	
+	
+	//Scenario test document
 	@Test
 	public void testDroneShippedOk() throws InterruptedException, IOException {
 		DeliveriesFile deliveriesFile = new DeliveriesFile();
@@ -44,15 +51,12 @@ public class AppTest {
 		deliveries.add(createDelivery(3L, "AAIADAD"));
 		deliveriesFile.setDeliveries(deliveries);
 		
-		String actual = this.processDeliveriesFile(deliveriesFile);
-		
-		Assert.assertEquals("Drone shipped Correctly.", actual);
+		this.scadService.processDeliveriesFile(deliveriesFile);
 	}
 	
-	@Test
+	//Scenario test document over 3 deliveries
+	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidDeliveriesPerDrone() throws InterruptedException, IOException {
-		Integer maxDeliveriesPerDrone = this.projectProperties.getMaxDeliveriesPerDrone();
-		
 		DeliveriesFile deliveriesFile = new DeliveriesFile();
 		deliveriesFile.setName("in02.txt");
 		
@@ -63,72 +67,21 @@ public class AppTest {
 		deliveries.add(createDelivery(4L, "AAIADAD"));
 		deliveriesFile.setDeliveries(deliveries);
 		
-		String actual = this.processDeliveriesFile(deliveriesFile);
-		
-		String expected = "Cannot be over "+maxDeliveriesPerDrone+" deliveries per drone.";
-		Assert.assertEquals(expected, actual);
+		this.scadService.processDeliveriesFile(deliveriesFile);
 	}
 	
+	//Test severals files
 	@Test
-	public void testProcessSeveralFiles() throws InterruptedException {
+	public void testProcessSeveralFiles() throws IOException, InterruptedException {
 		List<DeliveriesFile> deliveriesFileList = this.generateDeliveriesFileList(3, 15);
 		
-		deliveriesFileList.forEach(deliveriesFile -> {
-			String actual = this.processDeliveriesFile(deliveriesFile);;
-			Assert.assertEquals("Drone shipped Correctly.", actual);
-		});
-	}
-	
-	public String processDeliveriesFile(DeliveriesFile deliveriesFile) {
-		String fileOutName = deliveriesFile.getName().replace("in", "out");
-		
-		if (!this.createFile(fileOutName)) {
-			return "Error creating txt file.";
-		}
-		
-		Drone drone = null;
-		try {
-			drone = this.availableDrones.take();
-		} catch (InterruptedException e) {
-			return e.getMessage();
-		}
-		
-		drone.setDeliveries(deliveriesFile.getDeliveries());
-		
-		try {
-			this.droneService.startDeliveries(drone, fileOutName);
-		} catch (RuntimeException e) {
-			drone.setDeliveries(null);
-			this.availableDrones.add(drone);
-			return e.getMessage();
-		}
-		
-		return "Drone shipped Correctly.";
-	}
-	
-	private boolean createFile(String fileOutName) {
-		try {
-			File myObj = new File("src/main/resources/" + fileOutName);
-			return myObj.createNewFile();
-		} catch (IOException e) {
-			return false;
+		for (DeliveriesFile deliveriesFile : deliveriesFileList) {
+			this.scadService.processDeliveriesFile(deliveriesFile);
 		}
 	}
 	
-	private void createDronesQueue() {
-		IntStream.range(0, MAX_DRONES).forEach(idx -> {
-			try {
-				Drone drone = new Drone();
-				drone.setId(Long.valueOf(idx));
-				drone.setName("Drone"+(idx+1));
-				
-				this.availableDrones.put(drone);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	  );
-	}
+	
+	
 	
 	private static Delivery createDelivery(Long id, String path) {
 		Delivery delivery = new Delivery();
@@ -153,7 +106,7 @@ public class AppTest {
 			DeliveriesFile deliveriesFile = new DeliveriesFile();
 			deliveriesFile.setId(Long.valueOf(i));
 			deliveriesFile.setName("in"+String.format("%02d" , i)+".txt");
-			deliveriesFile.setDeliveries(this.generateDeliveries(this.projectProperties.getMaxDeliveriesPerDrone(), i));
+			deliveriesFile.setDeliveries(this.generateDeliveries(3, i));
 			deliveriesFileList.add(deliveriesFile);
 		}
 		
